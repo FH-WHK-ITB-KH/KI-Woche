@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meine Woche mit KI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: ruhige Hörsaal-Oberfläche, alles auf einen Laptop-Bildschirm
+   IDEA die Eisenhower-Matrix als Pinnwand, auf die der Kurs seine KI-Fälle heftet
+   PICTURE die Matrix selbst, Einträge als farbige Kärtchen nach Themengebiet
+   COLOUR FH-Blau Kopf, Weiß; Themen: Studium Blau, Arbeit Orange, Alltag Grün
+   TYPE Source Sans 3
+   LAYOUT feste Bildschirmhöhe: Matrix links, Steuer- bzw. Aufgabenspalte rechts; am Handy gestapelt */
+:root{--bg:#fff;--ink:#151826;--muted:#5b6275;--panel:#f3f5fb;--line:#d6dbea;--blue:#00279B;--blue2:#496DC0;--orange:#B5531E;--green:#0b7a4b;--red:#b3261e;
+--c0:#3d63c4;--c1:#c25a1f;--c2:#0b7a4b}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.4 "Source Sans 3",Calibri,Arial,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+header{background:var(--blue);color:#fff;padding:8px 18px;display:flex;gap:14px;align-items:center;flex:none}
+header h1{margin:0;font-size:22px;font-weight:800;white-space:nowrap}
+.phase{font-size:14px;font-weight:700;background:rgba(255,255,255,.16);padding:3px 10px;border-radius:999px;white-space:nowrap}
+header .sp{flex:1}
+.seg{display:flex;background:rgba(255,255,255,.14);border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;color:#fff;padding:5px 14px;border-radius:999px;font-weight:700;font-size:14px}
+.seg button[aria-pressed=true]{background:#fff;color:var(--blue)}
+main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) clamp(340px,28vw,420px);gap:14px;padding:12px 16px;min-height:0}
+main.solo{grid-template-columns:minmax(0,1fr)}
+.side{display:flex;flex-direction:column;gap:8px;min-height:0;overflow:hidden}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.box h3{margin:0 0 6px;font-size:16px}
+.note{font-size:13px;color:var(--muted)}
+.btn{border:0;background:var(--orange);color:#fff;font-weight:700;border-radius:10px;padding:9px 14px;min-height:40px;font-size:15px}
+.btn.alt{background:var(--blue)}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:3px solid var(--blue2);outline-offset:2px}
+input[type=text],input[type=number]{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 10px;font-size:16px;min-height:40px;width:100%}
+input[type=number]{width:5em;text-align:center;font-weight:700}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stats div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.stats b{display:inline;font-size:24px;margin-right:6px;line-height:1.05;font-variant-numeric:tabular-nums}
+/* Matrix */
+.mxwrap{display:flex;flex-direction:column;min-height:0;gap:6px}
+.mx{flex:1;display:grid;grid-template-columns:26px minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) minmax(0,1fr);gap:6px;min-height:0}
+.mx .colh{text-align:center;font-weight:800;font-size:14px;color:var(--muted)}
+.mx .rowh{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;font-weight:800;font-size:14px;color:var(--muted)}
+.cell{border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;min-height:0;background:#fff}
+.cell.allowed{border:3px solid var(--orange);box-shadow:0 0 0 3px rgba(181,83,30,.12)}
+.cell .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex:none}
+.cell .hd b{font-size:16px}
+.cell .hd span{font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap}
+.cell .tag{font-size:12px;font-weight:700;color:var(--orange);flex:none;margin:1px 0 4px}
+.chips{flex:1;display:flex;flex-wrap:wrap;align-content:flex-start;gap:5px;overflow:hidden;min-height:0;font-size:15px}
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:8px;padding:3px 8px;color:#fff;line-height:1.2;border:2px solid transparent;font-size:1em;text-align:left}
+.chip.c0{background:var(--c0)}.chip.c1{background:var(--c1)}.chip.c2{background:var(--c2)}
+.chip .n{font-weight:800;font-size:.8em;background:rgba(255,255,255,.28);border-radius:999px;padding:0 6px}
+.chip .q{font-weight:800;font-size:.8em;background:#fff;color:var(--red);border-radius:999px;padding:0 5px}
+.chip.mine{border-color:#111}
+.chip.lock{opacity:.45}
+.chip .g{font-weight:800;font-size:.78em;background:#111;color:#fff;border-radius:6px;padding:0 5px}
+.chip.ours{opacity:1;outline:3px solid #111;outline-offset:1px}
+button.chip:not(:disabled):hover{filter:brightness(1.12)}
+button.chip:disabled{cursor:default}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted);flex:none;align-items:center}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.legend .qd{font-weight:800;background:#fff;color:var(--red);border:1px solid var(--line);border-radius:999px;padding:0 5px;margin-right:4px}
+/* Spieler-Eingabe */
+.center{display:grid;place-items:center;min-height:0;overflow:auto}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;width:min(640px,100%)}
+.card h2{margin:0 0 8px;font-size:26px;line-height:1.1}
+.cat{display:inline-block;color:#fff;font-weight:800;border-radius:10px;padding:4px 12px;font-size:15px}
+.cat.c0{background:var(--c0)}.cat.c1{background:var(--c1)}.cat.c2{background:var(--c2)}
+.qa{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;margin:10px 0}
+.tog{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.tog button{border:0;background:#fff;padding:6px 14px;min-height:38px;font-weight:700;font-size:15px}
+.tog button+button{border-left:1px solid var(--line)}
+.tog button[aria-pressed=true]{background:var(--blue);color:#fff}
+.mine-list{max-height:180px;overflow:auto;margin-top:10px}
+.me{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding:5px 0;font-size:15px}
+.x{border:0;background:transparent;color:var(--muted);font-size:20px;min-width:34px;min-height:34px;border-radius:8px}
+/* Aufgabe */
+.task{font-size:13.5px}.task p{font-size:1em}.task ol{margin:4px 0 6px;padding-left:18px;line-height:1.35}.task li{margin-bottom:3px}.four{display:grid;grid-template-columns:1fr;gap:1px;margin:3px 0;font-size:.92em;white-space:nowrap;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+.grp{background:var(--blue);color:#fff;border-radius:12px;padding:10px 12px;display:flex;gap:12px;align-items:center}
+.grp b{font-size:34px;line-height:1;font-weight:800;white-space:nowrap}
+.big{font-size:44px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.big.low{color:var(--red)}
+.draw{background:var(--blue);color:#fff;border-radius:14px;padding:14px;text-align:center}
+.draw .g{font-size:40px;font-weight:800;line-height:1}
+.draw .c{font-size:18px;font-weight:700;margin-top:4px}
+.tools{display:flex;gap:6px;flex-wrap:wrap}.tools .btn{padding:6px 10px;min-height:34px;font-size:14px}
+.glbox{flex:1;min-height:0;display:flex;flex-direction:column}.gl{display:flex;flex-direction:column;gap:3px;font-size:13px;overflow:auto;min-height:0}.gl div{flex:none;padding:2px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gl div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+.gl div.ok{border-color:var(--green)}
+.qsel{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:14px}
+.qsel label{display:flex;gap:6px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:2px 8px;font-size:13px}
+.hist{display:flex;gap:4px;flex-wrap:wrap}
+.hist span{font-size:12px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+dialog{border:0;border-radius:16px;padding:20px;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(5,10,30,.55)}
+dialog h3{margin:0 0 8px}
+.sim{font-size:12px;color:#fff;opacity:.85}
+@media(max-width:900px),(max-height:560px){body{overflow:auto;height:auto}main{grid-template-columns:minmax(0,1fr)}.mx{min-height:520px}.side{overflow:visible}}
+@media(max-width:900px){main{display:flex;flex-direction:column}.side{order:-1}.sim{display:none}header{padding:8px 12px;gap:6px 8px;flex-wrap:wrap}header h1{font-size:18px}header .sp{display:none}}
+.conn{font-size:13px;font-weight:700;background:#b3261e;color:#fff;border-radius:999px;padding:2px 10px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#151826;color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;z-index:50;max-width:90vw}
+.join{display:flex;gap:10px;align-items:center;margin-top:10px;font-size:14px}
+#qrsmall{width:88px;flex:none}#qrsmall svg{width:88px;height:88px;display:block}
+.qrbig{position:fixed;inset:0;background:rgba(5,10,30,.7);display:grid;place-items:center;z-index:40}
+.qrcard{background:#fff;border-radius:20px;padding:24px;text-align:center;max-width:92vw}
+#qrbox svg{width:min(70vh,80vw);height:auto;display:block;margin:0 auto}
+#qrurl{font-size:22px;font-weight:700;word-break:break-all}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>Meine Woche mit KI</h1>
+  <span class="phase" id="ph"></span>
+  <span class="sp"></span>
+  <span class="sim" id="modeinfo"></span>
+  <span class="conn" id="conn" hidden>Verbindung wird wiederhergestellt …</span>
+  <div class="seg" role="group" aria-label="Ansicht" id="seg" hidden><button id="v-lead">Spielleitung</button><button id="v-pl">Spieler (Demo)</button></div>
+</header>
+<main id="boot"><div class="center"><p class="note">Wird geladen …</p></div></main>
+<div class="toast" id="toast" hidden></div>
+<div class="qrbig" id="qrbig" hidden><div class="qrcard"><div id="qrbox"></div><p id="qrurl"></p><button class="btn ghost" id="qrclose">Schließen</button></div></div>
+<dialog id="dlg"><h3 id="dlg-t"></h3><p id="dlg-p" class="note" style="font-size:15px"></p><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn ghost" id="dlg-no">Abbrechen</button><button class="btn" id="dlg-yes">Ja, ich bin sicher</button></div></dialog>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+{
+// =====================================================================
+// EINSTELLUNGEN – hier die beiden Werte aus Supabase eintragen.
+// Leer gelassen läuft die Seite als Demo mit simulierten Teilnehmenden.
+// =====================================================================
+const SUPABASE_URL = 'https://qfyyehjxpakxxnjfkwjo.supabase.co';   // z. B. 'https://abcdefgh.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_Lm8YAusdGhlkhPH6NLVxqw_o2QOIAxK';   // der „anon public“-Schlüssel (darf öffentlich sein)
+const SESSION      = 'ki2026';
+// =====================================================================
+
+const LIVE=!!(SUPABASE_URL&&SUPABASE_KEY);
+const CODE=(new URLSearchParams(location.search).get('s')||SESSION).toLowerCase();
+const CATS=['Studium','Arbeit und Praktikum','Alltag'];
+const QN={1:['Wichtig und dringend','Sofort selbst erledigen'],2:['Wichtig, nicht dringend','Einplanen'],3:['Dringend, nicht wichtig','Delegieren'],4:['Weder wichtig noch dringend','Streichen']};
+const SQ={1:'Wichtig + dringend',2:'Wichtig, nicht dringend',3:'Dringend, nicht wichtig',4:'Weder noch'};
+const quad=(w,d)=>w&&d?1:w?2:d?3:4;
+const PHASES=['eingabe','beendet','freigegeben','gruppen','auswahl','bearbeitung','praesentation'];
+const PLBL={eingabe:'Umfrage läuft',beendet:'Umfrage beendet',freigegeben:'Ansicht freigegeben',gruppen:'Gruppen eingeteilt',auswahl:'Fallauswahl',bearbeitung:'Bearbeitung',praesentation:'Präsentation'};
+const TASK=`<p style="margin:0 0 4px">Nehmt den Fall als typische Aufgabe – egal, wer ihn eingetragen hat.</p><ol>
+ <li><b>Aufgabe verstehen:</b> Worum geht es bei der Aufgabe eigentlich? Was würde die KI typischerweise machen, was bliebe beim Menschen?</li>
+ <li><b>Gewinn und Verlust:</b> Was spart man, wenn die KI es macht? Was würde man beim Selbermachen lernen oder gewinnen?</li>
+ <li><b>Neu aufteilen:</b> Welcher Teil darf zur KI, welcher sollte beim Menschen bleiben – und was prüft man, bevor man das Ergebnis übernimmt?</li>
+ <li><b>Die fünfte Frage:</b> Im Selbstmanagement entscheidet man mit vier Fragen, wie man Arbeit von Ballast befreit:
+ <div class="four"><span>1 Ist sie unbedingt nötig? → Streichen</span><span>2 Muss ich sie selbst machen? → Delegieren</span><span>3 Kehrt sie wieder? → Standardisieren</span><span>4 Kann ich sie vereinfachen? → Rationalisieren</span></div>
+ Heute kann man auch an eine KI delegieren. Welche fünfte Frage sollte man sich dann stellen?</li></ol>
+ <p class="note" style="margin:0">Ergebnis: eure Aufteilung und eure fünfte Frage – mündlich, zwei Minuten, falls eure Gruppe gelost wird.</p>`;
+const $=id=>document.getElementById(id);
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const pi=p=>PHASES.indexOf(p);
+const ls={get:(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const uuid=()=>(crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16)}));
+function tok(k){let t=ls.get(k,null);if(!t){t=uuid();ls.set(k,t)}return t}
+
+// ---------------------------------------------------------------------
+// Backend: live über Supabase-Funktionen, sonst lokale Demo
+// ---------------------------------------------------------------------
+const Remote={
+  async call(fn,args){
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{method:'POST',headers:Object.assign({'Content-Type':'application/json',apikey:SUPABASE_KEY},SUPABASE_KEY.startsWith('eyJ')?{Authorization:'Bearer '+SUPABASE_KEY}:{}),body:JSON.stringify(args)});
+    const j=await r.json().catch(()=>null);
+    if(!r.ok)throw new Error((j&&(j.message||j.hint))||('Fehler '+r.status));
+    if(j&&j.error)throw new Error(j.error);
+    return j;
+  },
+  state:(t,rev)=>Remote.call('get_state',{p_code:CODE,p_token:t,p_rev:rev}),
+  join:(t,name)=>Remote.call('join_session',{p_code:CODE,p_token:t,p_name:name}),
+  add:(t,x)=>Remote.call('add_entry',{p_code:CODE,p_token:t,p_text:x.t,p_w:!!x.w,p_d:!!x.d,p_e:!!x.e}),
+  del:(t,id)=>Remote.call('del_entry',{p_code:CODE,p_token:t,p_id:id}),
+  pick:(t,key,text)=>Remote.call('pick_item',{p_code:CODE,p_token:t,p_key:key,p_text:text}),
+  unpick:t=>Remote.call('unpick_item',{p_code:CODE,p_token:t}),
+  login:(t,pin)=>Remote.call('admin_login',{p_code:CODE,p_token:t,p_pin:pin}),
+  op:(t,op,arg)=>Remote.call('admin_op',{p_code:CODE,p_token:t,p_op:op,p_arg:arg||{}})
+};
+
+// --- Demo: dieselben Funktionen lokal, mit 30 simulierten Teilnehmenden ---
+const SIME=[['Paper zusammenfassen lassen',0,1,0,0],['Paper zusammenfassen lassen',0,1,0,0],['Paper zusammenfassen lassen',0,1,0,0],['Hausarbeit-Einleitung schreiben lassen',0,1,0,0],['Hausarbeit-Einleitung schreiben lassen',0,1,0,0],['Altklausur-Aufgabe erklären lassen',0,1,0,1],['Altklausur-Aufgabe erklären lassen',0,1,0,1],['Excel-Formel für die Statistik-Übung',0,1,1,0],['Abgabe morgen: Text kürzen lassen',0,1,1,1],['Python-Fehler finden lassen',0,1,1,0],['Karteikarten aus dem Skript',0,1,0,1],['Quellen für ein Referat suchen',0,1,0,0],['Mail an Prof formulieren',0,0,1,1],['Mail an Prof formulieren',0,0,1,1],['Mail an Prof formulieren',0,0,1,1],['Folien formatieren lassen',0,0,1,1],['Lernplan für die Klausurphase',0,1,0,1],
+ ['Englische Kundenmail formulieren',1,0,1,1],['Englische Kundenmail formulieren',1,0,1,1],['Protokoll aus Stichpunkten',1,0,1,1],['Protokoll aus Stichpunkten',1,0,1,1],['Bewerbungsanschreiben',1,1,0,0],['Bewerbungsanschreiben',1,1,0,0],['SQL-Abfrage für eine Auswertung',1,1,1,0],['Präsentation fürs Praktikum gliedern',1,1,0,1],['Antwort auf eine Kundenbeschwerde',1,1,1,1],['Arbeitsvertrag erklären lassen',1,1,0,0],['Produkttexte für den Onlineshop',1,0,0,0],['Stundenzettel-Tabelle bauen',1,0,0,1],['LinkedIn-Profil schreiben lassen',1,1,0,0],
+ ['Rezept aus Kühlschrankresten',2,0,1,1],['Rezept aus Kühlschrankresten',2,0,1,1],['Trainingsplan fürs Fitnessstudio',2,1,0,0],['Trainingsplan fürs Fitnessstudio',2,1,0,0],['Geburtstagsnachricht an Oma',2,1,1,1],['Nachricht im WG-Streit entschärfen',2,1,1,1],['Urlaubsroute planen',2,0,0,1],['Horoskop deuten lassen',2,0,0,0],['Was kann ich von der Steuer absetzen?',2,1,0,0],['Witz für eine Rede',2,0,1,1],['Mietvertrag prüfen lassen',2,1,0,0],['Entschuldigung an eine Freundin',2,1,1,0]];
+const NAMES=['Lea','Jonas','Mia','Paul','Emma','Ben','Hannah','Lukas','Sophie','Finn','Lina','Noah','Marie','Elias','Clara','Tim','Lena','Felix','Anna','Luca','Nele','Moritz','Ida','Jan','Greta','Ole','Paula','Leon','Frieda','Max'];
+const Demo={
+  db:null,
+  load(){this.db=ls.get('mwk-demo-db',null)||this.fresh();},
+  fresh(){return {s:{phase:'eingabe',allowed:[2],cap:1,dur:20,timer_end:null,n_groups:0,cur:null,draws:[],sel_open_at:0,rev:0,t0:Date.now(),tEnd:0},players:{},entries:[],admins:[],choices:{},nextId:1,simDone:0}},
+  save(){ls.set('mwk-demo-db',this.db)},
+  bump(){this.db.s.rev++;this.save()},
+  err(m){throw new Error(m)},
+  sim(){ // simulierte Teilnehmende treten bei und tragen ein, solange die Umfrage läuft
+    const D=this.db,s=D.s;if(s.phase!=='eingabe')return;const t=(Date.now()-s.t0)/1000;let ch=false;
+    NAMES.forEach((n,i)=>{const k='sim'+i;if(!D.players[k]&&t>=2+i*0.8){D.players[k]={name:n,cat:i%3,grp:null,sim:true};ch=true}});
+    const byCat=[[],[],[]];NAMES.forEach((n,i)=>byCat[i%3].push('sim'+i));const cnt=[0,0,0];
+    SIME.forEach((e,i)=>{const owner=byCat[e[1]][cnt[e[1]]++%byCat[e[1]].length];if(i>=D.simDone&&t>=12+i*1.15&&D.players[owner]){D.entries.push({id:D.nextId++,token:owner,cat:e[1],text:e[0],w:!!e[2],d:!!e[3],e:!!e[4]});D.simDone=i+1;ch=true}});
+    if(ch)this.bump();
+  },
+  simPick(){ // simulierte Gruppen wählen nacheinander
+    const D=this.db,s=D.s;if(s.phase!=='auswahl')return;const t=(Date.now()-s.sel_open_at)/1000;let ch=false;
+    for(let g=1;g<=s.n_groups;g++){
+      const mem=Object.entries(D.players).filter(([k,p])=>p.grp===g);if(mem.some(([k,p])=>!p.sim)||D.choices[g]||t<5+g*3)continue;
+      const its=itemsFrom(D.entries.map(e=>({...e})),s.allowed).filter(it=>Object.values(D.choices).filter(c=>c.key===it.key).length<s.cap);if(!its.length)continue;
+      const it=its[Math.floor(Math.random()*Math.min(3,its.length))];D.choices[g]={key:it.key,text:it.t,by_token:mem[0][0],by_name:mem[0][1].name};ch=true}
+    if(ch)this.bump();
+  },
+  async state(t,rev){this.load();this.sim();this.simPick();const D=this.db,s=D.s;const now=Date.now();
+    if(rev===s.rev)return {same:true,rev:s.rev,now};
+    const adm=D.admins.includes(t),me=D.players[t],all=adm||!['eingabe','beendet'].includes(s.phase);
+    const grps={};Object.values(D.players).forEach(p=>{if(p.grp&&(adm||(me&&p.grp===me.grp)))(grps[p.grp]=grps[p.grp]||[]).push(p.name)});
+    return {rev:s.rev,now,phase:s.phase,allowed:s.allowed,cap:s.cap,dur:s.dur,timer_end:s.timer_end,cur:s.cur,draws:s.draws,n_groups:s.n_groups,admin:adm,
+      me:me?{name:me.name,cat:me.cat,grp:me.grp}:null,mine:D.entries.filter(e=>e.token===t).map(e=>({id:e.id,text:e.text,w:e.w,d:e.d,e:e.e})),
+      n_players:Object.keys(D.players).length,n_entries:D.entries.length,
+      entries:all?D.entries.map(e=>({cat:e.cat,text:e.text,w:e.w,d:e.d,e:e.e,own:e.token===t})):null,
+      groups:Object.keys(grps).sort((a,b)=>a-b).map(g=>({grp:+g,members:grps[g].sort()})),
+      choices:Object.entries(D.choices).map(([g,c])=>({grp:+g,key:c.key,text:c.text,by_name:c.by_name,by_me:c.by_token===t}))};
+  },
+  async join(t,name){this.load();name=String(name||'').trim().slice(0,24);if(!name)this.err('Bitte einen Benutzernamen eingeben');const D=this.db;D.players[t]=D.players[t]?{...D.players[t],name}:{name,cat:Math.floor(Math.random()*3),grp:null};this.bump();return this.state(t)},
+  async add(t,x){this.load();const D=this.db,p=D.players[t];if(!p)this.err('Bitte zuerst einen Benutzernamen eingeben');if(D.s.phase!=='eingabe')this.err('Die Umfrage ist beendet');
+    const text=String(x.t||'').trim().slice(0,80);if(!text||x.w==null||x.d==null||x.e==null)this.err('Bitte alle Angaben ausfüllen');
+    D.entries.push({id:D.nextId++,token:t,cat:p.cat,text,w:!!x.w,d:!!x.d,e:!!x.e});this.bump();return this.state(t)},
+  async del(t,id){this.load();const D=this.db;if(D.s.phase!=='eingabe')this.err('Die Umfrage ist beendet');D.entries=D.entries.filter(e=>!(e.id===id&&e.token===t));this.bump();return this.state(t)},
+  async pick(t,key,text){this.load();const D=this.db,s=D.s,p=D.players[t];if(s.phase!=='auswahl')this.err('Die Auswahl ist gerade nicht freigegeben');if(!p||!p.grp)this.err('Du bist keiner Gruppe zugeteilt');
+    if(D.choices[p.grp])this.err('Eure Gruppe hat schon einen Fall gewählt');if(!s.allowed.includes(+key.split('|')[0]))this.err('Aus diesem Feld darf gerade nicht gewählt werden');
+    if(Object.values(D.choices).filter(c=>c.key===key).length>=s.cap)this.err('Dieser Fall ist schon vergeben');
+    D.choices[p.grp]={key,text,by_token:t,by_name:p.name};this.bump();return this.state(t)},
+  async unpick(t){this.load();const D=this.db;if(D.s.phase!=='auswahl')this.err('Die Auswahl ist gerade nicht offen');for(const g in D.choices)if(D.choices[g].by_token===t)delete D.choices[g];this.bump();return this.state(t)},
+  async login(t,pin){this.load();if(pin!=='123456')return {error:'Der Code ist falsch.'};if(!this.db.admins.includes(t))this.db.admins.push(t);this.bump();return this.state(t)},
+  async op(t,op,arg={}){this.load();const D=this.db,s=D.s;if(!D.admins.includes(t))this.err('Nur für die Spielleitung');const P=Object.entries(D.players);
+    const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+    if(op==='end'&&s.phase==='eingabe'){s.phase='beendet';s.tEnd=Date.now()}
+    else if(op==='release'&&s.phase==='beendet')s.phase='freigegeben';
+    else if(op==='groups'&&['freigegeben','gruppen'].includes(s.phase)){const n=Math.max(2,Math.min(30,+arg.n||2));D.choices={};P.forEach(([k,p])=>p.grp=null);shuffle(P.map(([k])=>k)).forEach((k,i)=>D.players[k].grp=i%n+1);s.n_groups=n;s.phase='gruppen'}
+    else if(op==='selopen'&&s.phase==='gruppen'){D.choices={};s.phase='auswahl';s.sel_open_at=Date.now()}
+    else if(op==='allowed')s.allowed=(arg.q||[]).map(Number).filter(q=>q>=1&&q<=4);
+    else if(op==='cap')s.cap=Math.max(1,Math.min(10,+arg.n||1));
+    else if(op==='timer'&&s.phase==='auswahl'){s.dur=Math.max(1,Math.min(120,+arg.min||20));s.timer_end=Date.now()+s.dur*60000;s.phase='bearbeitung'}
+    else if(op==='plus'&&s.phase==='bearbeitung')s.timer_end=Math.max(s.timer_end||0,Date.now())+60000;
+    else if(op==='present'&&s.phase==='bearbeitung')s.phase='praesentation';
+    else if(op==='draw'&&s.phase==='praesentation'&&s.n_groups>0){let g;do{g=1+Math.floor(Math.random()*s.n_groups)}while(s.n_groups>1&&g===s.cur);s.cur=g;s.draws.push(g)}
+    else if(op==='back'){
+      if(s.phase==='beendet'){s.phase='eingabe';s.t0+=Date.now()-(s.tEnd||Date.now())}
+      else if(s.phase==='freigegeben')s.phase='beendet';
+      else if(s.phase==='gruppen'){D.choices={};P.forEach(([k,p])=>p.grp=null);s.n_groups=0;s.phase='freigegeben'}
+      else if(s.phase==='auswahl'){D.choices={};s.phase='gruppen'}
+      else if(s.phase==='bearbeitung'){s.timer_end=null;s.phase='auswahl'}
+      else if(s.phase==='praesentation'){s.cur=null;s.draws=[];s.timer_end=Math.max(s.timer_end||0,Date.now());s.phase='bearbeitung'}}
+    else if(op==='reset'){const adm=D.admins;this.db=this.fresh();this.db.admins=adm}
+    else this.err('Dieser Schritt ist gerade nicht möglich');
+    this.bump();return this.state(t)}
+};
+const API=LIVE?Remote:Demo;
+
+// ---------------------------------------------------------------------
+// Oberfläche
+// ---------------------------------------------------------------------
+const U={view:ls.get('mwk-view','lead'),draft:{t:'',w:null,d:null,e:null},ng:null,dur:null,busy:false};
+const role=()=>LIVE?(location.hash==='#leitung'?'lead':'pl'):U.view;
+const token=()=>tok(LIVE?'mwk-token':(role()==='lead'?'mwk-demo-lead':'mwk-demo-player'));
+let G=null,offset=0,lastRev=-1,lastRole=null;
+const now=()=>Date.now()+offset;
+const at=p=>G&&pi(G.phase)>=pi(p);
+const norm=t=>String(t).toLowerCase().replace(/[^a-zäöüß0-9]+/g,' ').trim();
+function itemsFrom(E,allowed){ // vorläufig: gleicher Text + gleiches Themengebiet + gleiches Feld = ein Eintrag (×n)
+  const m=new Map();
+  (E||[]).forEach(e=>{const q=quad(e.w,e.d),k=q+'|'+e.cat+'|'+norm(e.text);if(!m.has(k))m.set(k,{key:k,t:e.text,cat:e.cat,q,n:0,ne:0,mine:false});const it=m.get(k);it.n++;if(!e.e)it.ne++;if(e.own)it.mine=true});
+  let L=[...m.values()];if(allowed)L=L.filter(it=>allowed.includes(it.q));return L.sort((a,b)=>b.n-a.n||a.cat-b.cat);
+}
+const items=()=>itemsFrom(G.entries);
+const claimsOf=k=>G.choices.filter(c=>c.key===k).map(c=>c.grp);
+const full=k=>claimsOf(k).length>=(G.cap||1);
+const myGroup=()=>G&&G.me&&G.me.grp||0;
+const myChoice=()=>G.choices.find(c=>c.grp===myGroup());
+const joinUrl=()=>location.origin+location.pathname+(new URLSearchParams(location.search).get('s')?'?s='+CODE:'');
+
+function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,3500)}
+async function act(fn){if(U.busy)return;U.busy=true;try{const r=await fn();if(r&&r.error)toast(r.error);else if(r&&r.rev!==undefined)apply(r)}catch(e){toast(e.message)}finally{U.busy=false}}
+function apply(r){if(r.same){offset=r.now-Date.now();return}offset=r.now-Date.now();G=r;lastRev=r.rev;render()}
+async function poll(){if(U.busy)return;try{const r=await API.state(token(),role()===lastRole?lastRev:-1);lastRole=role();$('conn').hidden=true;if(r&&r.error){showError(r.error);return}apply(r)}catch(e){$('conn').hidden=false}}
+
+function matrixHtml(mode){
+  const its=items(),mg=myGroup(),lead=mode==='lead',canPick=!lead&&G.phase==='auswahl'&&mg,mine=!lead&&myChoice();
+  const cell=q=>{const L=its.filter(i=>i.q===q);const cnt=L.reduce((a,b)=>a+b.n,0);const allowed=at('freigegeben')&&G.allowed.includes(q);
+    return `<div class="cell ${allowed?'allowed':''}"><div class="hd"><b>${QN[q][0]}</b><span>${cnt} ${cnt===1?'Eintrag':'Einträge'}</span></div><div class="tag">${allowed&&at('gruppen')?'Hier wählt ihr aus':QN[q][1]}</div>
+     <div class="chips">${L.map(it=>{const cl=claimsOf(it.key),ours=!lead&&cl.includes(mg),isFull=full(it.key);
+       const pickable=canPick&&allowed&&!isFull&&!mine,undo=canPick&&ours&&mine&&mine.by_me;
+       const inner=`${esc(it.t)}${it.n>1?`<span class="n">×${it.n}</span>`:''}${it.ne?`<span class="q" title="${it.ne} von ${it.n}: Ergebnis ohne KI nicht erklärbar">?</span>`:''}${cl.map(g=>`<span class="g">G${g}</span>`).join('')}`;
+       const cls=`chip c${it.cat} ${it.mine&&!lead?'mine':''} ${isFull&&!ours&&!lead?'lock':''} ${ours?'ours':''}`;
+       return pickable||undo?`<button class="${cls}" data-pick="${esc(it.key)}" data-text="${esc(it.t)}" title="${undo?'Auswahl zurücknehmen':'Diesen Fall für eure Gruppe wählen'}">${inner}</button>`:`<span class="${cls}">${inner}</span>`}).join('')}</div></div>`};
+  return `<div class="mxwrap"><div class="mx"><div></div><div class="colh">dringend</div><div class="colh">nicht dringend</div><div class="rowh">wichtig</div>${cell(1)}${cell(2)}<div class="rowh">nicht wichtig</div>${cell(3)}${cell(4)}</div>
+   <div class="legend">${CATS.map((c,i)=>`<span><i style="background:var(--c${i})"></i>${c}</span>`).join('')}<span><span class="qd">?</span>Ergebnis könnte ich ohne KI nicht erklären</span><span>×n gleich lautende Einträge</span>${!lead&&G.mine.length?'<span>schwarz umrandet: deine</span>':''}</div></div>`;
+}
+function loginView(){return `<main class="solo"><div class="center"><div class="card"><h2>Spielleitung</h2><p>Bitte den 6-stelligen Code eingeben.${LIVE?'':' <span class="note">(Demo: 123456)</span>'}</p><div class="row"><input type="password" id="pin" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••" style="max-width:12em;font-size:22px;letter-spacing:.3em;text-align:center"><button class="btn" data-act="login">Anmelden</button></div></div></div></main>`}
+function leadSide(){
+  const ph=G.phase;const ng=U.ng??Math.max(2,Math.round(G.n_players/4));const dur=U.dur??G.dur;let a='';
+  if(ph==='eingabe')a=`<button class="btn wide" data-act="end">Umfrage beenden</button><div class="join"><div id="qrsmall"></div><div><p class="note" style="margin:0">Teilnehmen unter</p><b style="word-break:break-all">${esc(joinUrl())}</b><br><button class="btn ghost" data-act="qr" style="margin-top:6px;min-height:32px;padding:4px 10px">QR-Code groß</button></div></div>`;
+  if(ph==='beendet')a=`<button class="btn wide" data-act="release">Ansicht freigeben</button><p class="note" style="margin:6px 0 0">Alle sehen dann die Matrix und die Aufgabe.</p>`;
+  if(ph==='freigegeben')a=`<h3>Gruppen einteilen</h3><div class="row"><label for="ng" class="note">Anzahl Gruppen</label><input type="number" id="ng" min="2" max="30" value="${ng}"><button class="btn" data-act="groups">Zufällig einteilen</button></div><p class="note" style="margin:6px 0 0">${G.n_players} Teilnehmende · Vorschlag: ${Math.max(2,Math.round(G.n_players/4))} Gruppen</p>`;
+  if(ph==='gruppen')a=`<button class="btn wide" data-act="selopen">Auswahl freigeben</button><p class="note" style="margin:6px 0 0">Erst, wenn sich die Gruppen gefunden haben.</p>`;
+  if(ph==='auswahl'){const n=G.choices.length,all=n>=G.n_groups;a=`<p style="margin:0 0 6px"><b>${n} von ${G.n_groups}</b> Gruppen haben gewählt</p><div class="row"><label for="dur" class="note">Bearbeitungszeit (Min.)</label><input type="number" id="dur" min="1" max="120" value="${dur}"></div><button class="btn wide" data-act="timer" style="margin-top:6px" ${all?'':'disabled'}>Timer starten</button>${all?'':'<button class="btn ghost wide" data-act="timer" style="margin-top:6px">Trotzdem starten</button>'}`}
+  if(ph==='bearbeitung'){const l=(G.timer_end-now())/1000;a=`<div class="big ${l<60?'low':''}" id="tm">${l>0?fmt(l):'Zeit um'}</div><div class="row" style="margin-top:6px"><button class="btn ghost" data-act="plus">+1 Min.</button><button class="btn" data-act="present">Zur Präsentation</button></div>`}
+  if(ph==='praesentation'){const c=G.choices.find(x=>x.grp===G.cur);a=`<button class="btn alt wide" data-act="draw">Gruppe auslosen</button>${G.cur?`<div class="draw" style="margin-top:8px"><div class="g">Gruppe ${G.cur}</div><div class="c">${c?esc(c.text):'ohne gewählten Fall'}</div></div>`:''}${G.draws.length?`<p class="note" style="margin:6px 0 2px">Bisher gelost:</p><div class="hist">${G.draws.map(g=>`<span>G${g}</span>`).join('')}</div>`:''}`}
+  const qsel=at('freigegeben')&&!at('bearbeitung')?`<div class="box"><h3>Auswahl erlaubt aus</h3><div class="qsel">${[1,2,3,4].map(q=>`<label><input type="checkbox" data-q="${q}" ${G.allowed.includes(q)?'checked':''}>${SQ[q]}</label>`).join('')}</div><div class="row" style="margin-top:6px"><label for="cap" class="note">Gruppen pro Eintrag</label><input type="number" id="cap" min="1" max="10" value="${G.cap}"></div></div>`:'';
+  const gl=G.groups.length?`<div class="box glbox"><h3>Gruppen</h3><div class="gl">${G.groups.map(g=>{const c=G.choices.find(x=>x.grp===g.grp);return `<div class="${c?'ok':''}" title="${esc(g.members.join(', '))}"><b>G${g.grp}</b> <span class="note">${g.members.length} Pers.</span> ${c?'→ '+esc(c.text):'<span class="note">wählt noch …</span>'}</div>`}).join('')}</div></div>`:'';
+  return `<div class="tools"><button class="btn ghost" data-act="back" ${pi(ph)>0?'':'disabled'}>Schritt zurück</button><button class="btn ghost" data-act="save">Matrix speichern</button><button class="btn ghost" data-act="csv">CSV</button><button class="btn ghost" data-act="reset" title="Alles löschen und neu beginnen">Neu</button></div>
+   <div class="box"><div class="stats"><div><b>${G.n_players}</b>Teilnehmende</div><div><b>${G.n_entries}</b>Einträge</div></div></div>
+   <div class="box">${a}</div>${qsel}${gl}`;
+}
+function playerView(){
+  if(!G.me)return `<main class="solo"><div class="center"><div class="card"><h2>Willkommen!</h2><p>Gib einen Benutzernamen ein. Er ist nur bei der Gruppeneinteilung sichtbar, nicht bei deinen Einträgen.</p><div class="row"><input type="text" id="nm" maxlength="24" placeholder="Benutzername"><button class="btn" data-act="join">Los</button></div></div></div></main>`;
+  const ph=G.phase;
+  if(!at('freigegeben')){
+    const D=U.draft,ok=D.t.trim()&&D.w!==null&&D.d!==null&&D.e!==null,open=ph==='eingabe';
+    return `<main class="solo"><div class="center"><div class="card"><p style="margin:0 0 6px">Hallo ${esc(G.me.name)}, dein Themengebiet:</p><span class="cat c${G.me.cat}">${CATS[G.me.cat]}</span>
+     ${open?`<h2 style="margin-top:12px">Wofür hast du KI zuletzt eingesetzt?</h2><p class="note">So viele Einträge, wie du willst – vor allem aus deinem Themengebiet.</p>
+      <input type="text" id="nt" maxlength="80" value="${esc(D.t)}" placeholder="Was hast du mit KI gemacht?">
+      <div class="qa"><span>War die Aufgabe <b>wichtig</b> für dich?</span><div class="tog"><button data-d="w:1" aria-pressed="${D.w===1}">ja</button><button data-d="w:0" aria-pressed="${D.w===0}">nein</button></div>
+      <span>War sie <b>dringend</b>?</span><div class="tog"><button data-d="d:1" aria-pressed="${D.d===1}">ja</button><button data-d="d:0" aria-pressed="${D.d===0}">nein</button></div>
+      <span>Könntest du das Ergebnis <b>ohne KI erklären</b>?</span><div class="tog"><button data-d="e:1" aria-pressed="${D.e===1}">ja</button><button data-d="e:0" aria-pressed="${D.e===0}">nein</button></div></div>
+      <button class="btn" data-act="add" id="add" ${ok?'':'disabled'}>Eintragen</button>`:`<h2 style="margin-top:12px">Die Umfrage ist beendet.</h2><p>Gleich gibt die Spielleitung die Ansicht frei.</p>`}
+     ${G.mine.length?`<div class="mine-list">${G.mine.map(m=>`<div class="me"><span>${esc(m.text)} <span class="note">· ${QN[quad(m.w,m.d)][0]}${m.e?'':' · ?'}</span></span>${open?`<button class="x" data-del="${m.id}" aria-label="Eintrag löschen">×</button>`:''}</div>`).join('')}</div>`:''}</div></div></main>`;
+  }
+  const mg=myGroup(),grp=G.groups.find(g=>g.grp===mg),mine=myChoice();let side='';
+  if(mg)side+=`<div class="grp"><div><div style="font-size:14px;opacity:.85">Du bist in</div><b>Gruppe ${mg}</b></div><div style="font-size:14px;opacity:.9">${grp&&grp.members.length>1?'mit '+esc(grp.members.filter(n=>n!==G.me.name).join(', ')):''}</div></div>`;
+  else if(at('gruppen'))side+=`<div class="box">Du bist noch keiner Gruppe zugeteilt. Bitte melde dich bei der Spielleitung.</div>`;
+  if(ph==='gruppen')side+=`<div class="box"><b>Findet euch zusammen.</b> Die Auswahl eines Falls wird gleich freigegeben.</div>`;
+  if(ph==='auswahl')side+=mine?`<div class="box"><p class="note" style="margin:0">Euer Fall</p><b style="font-size:18px">${esc(mine.text)}</b><p class="note" style="margin:4px 0 0">gewählt von ${esc(mine.by_name)}${mine.by_me?' – zum Zurücknehmen den Fall in der Matrix noch einmal anklicken':''}</p></div>`:`<div class="box"><b>Wählt einen Fall</b> aus dem orange umrandeten Feld. Ein Klick wählt ihn für eure ganze Gruppe.${G.cap>1?` Jeder Fall kann von bis zu ${G.cap} Gruppen gewählt werden.`:''}</div>`;
+  if(ph==='bearbeitung'){const l=(G.timer_end-now())/1000;side+=`<div class="box"><p class="note" style="margin:0">Euer Fall</p><b style="font-size:18px">${mine?esc(mine.text):'–'}</b><div class="big ${l<60?'low':''}" id="tm" style="margin-top:6px">${l>0?fmt(l):'Zeit um'}</div></div>`}
+  if(ph==='praesentation'&&G.cur){const c=G.choices.find(x=>x.grp===G.cur);side+=`<div class="draw"><div style="font-size:13px;opacity:.85">Es stellt vor</div><div class="g">Gruppe ${G.cur}</div><div class="c">${c?esc(c.text):''}</div>${G.cur===mg?'<div style="margin-top:6px;font-weight:700">Das seid ihr!</div>':''}</div>`}
+  side+=`<div class="box task"><h3>Eure Aufgabe</h3>${TASK}</div>`;
+  return `<main>${matrixHtml('player')}<div class="side">${side}</div></main>`;
+}
+function showError(m){const h=`<main class="solo"><div class="center"><div class="card"><h2>Das hat nicht geklappt</h2><p>${esc(m)}</p><p class="note">Sitzung: ${esc(CODE)}</p></div></div></main>`;const mm=document.querySelector('main');mm.outerHTML=h}
+function fit(){document.querySelectorAll('.chips').forEach(c=>{let s=15;c.style.fontSize=s+'px';while(c.scrollHeight>c.clientHeight+1&&s>10){s-=.5;c.style.fontSize=s+'px'}});
+  const sd=document.querySelector('.side'),tk=document.querySelector('.task');if(sd&&tk&&innerWidth>900){let s=14;tk.style.fontSize=s+'px';while(sd.scrollHeight>sd.clientHeight+1&&s>11){s-=.5;tk.style.fontSize=s+'px'}}}
+function qr(el,size){if(!el)return;try{const q=qrcode(0,'M');q.addData(joinUrl());q.make();el.innerHTML=q.createSvgTag({cellSize:size,margin:0,scalable:true})}catch(e){el.innerHTML=''}}
+function render(){
+  if(!G)return;
+  const a=document.activeElement,id=a&&a.id,pos=a&&a.selectionStart;
+  $('ph').textContent=PLBL[G.phase]||'';
+  $('modeinfo').textContent=LIVE?`Sitzung ${CODE}`:'Demo · andere Teilnehmende simuliert';
+  $('seg').hidden=LIVE;$('v-lead').setAttribute('aria-pressed',U.view==='lead');$('v-pl').setAttribute('aria-pressed',U.view==='pl');
+  const html=role()==='lead'?(G.admin?`<main>${matrixHtml('lead')}<div class="side">${leadSide()}</div></main>`:loginView()):playerView();
+  document.querySelector('main').outerHTML=html;
+  qr($('qrsmall'),3);fit();
+  if(id&&$(id)){$(id).focus();try{$(id).setSelectionRange(pos,pos)}catch(e){}}
+}
+function confirmDlg(t,p,yes){$('dlg-t').textContent=t;$('dlg-p').textContent=p;const d=$('dlg');$('dlg-yes').onclick=()=>{d.close();yes()};$('dlg-no').onclick=()=>d.close();try{d.showModal()}catch(e){if(window.confirm(t))yes()}}
+function download(name,type,text){const b=new Blob([text],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+function saveMatrix(){const css=[...document.styleSheets].map(s=>{try{return [...s.cssRules].map(r=>r.cssText).join('\n')}catch(e){return ''}}).join('\n');const d=new Date().toISOString().slice(0,10);
+  download(`Kurs-Matrix_${d}.html`,'text/html',`<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Kurs-Matrix ${d}</title><style>${css} body{overflow:auto;height:auto;padding:16px} .mx{height:80vh}</style></head><body><h2>Meine Woche mit KI – Kurs-Matrix vom ${new Date().toLocaleDateString('de-DE')}</h2><p class="note">${G.n_entries} Einträge von ${G.n_players} Teilnehmenden</p>${matrixHtml('lead')}</body></html>`)}
+function saveCsv(){const rows=[['Themengebiet','Eintrag','wichtig','dringend','ohne KI erklärbar','Quadrant']].concat((G.entries||[]).map(e=>[CATS[e.cat],e.text,e.w?'ja':'nein',e.d?'ja':'nein',e.e?'ja':'nein',QN[quad(e.w,e.d)][0]]));
+  download(`Kurs-Matrix_Eintraege_${new Date().toISOString().slice(0,10)}.csv`,'text/csv',"﻿"+rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(';')).join('\n'))}
+function addEntry(){const D=U.draft;if(!(D.t.trim()&&D.w!==null&&D.d!==null&&D.e!==null))return;act(async()=>{const r=await API.add(token(),D);U.draft={t:'',w:null,d:null,e:null};return r}).then(()=>$('nt')?.focus())}
+const OPS={end:'end',release:'release',selopen:'selopen',plus:'plus',present:'present',draw:'draw'};
+document.body.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b||b.closest('dialog'))return;const a=b.dataset.act;
+  if(b.id==='v-lead'||b.id==='v-pl'){U.view=b.id==='v-lead'?'lead':'pl';ls.set('mwk-view',U.view);lastRev=-1;poll();return}
+  if(b.id==='qrclose'){$('qrbig').hidden=true;return}
+  if(a==='join'){const n=$('nm').value.trim();if(n)act(()=>API.join(token(),n));return}
+  if(a==='login'){const p=$('pin').value.trim();act(()=>API.login(token(),p));return}
+  if(b.dataset.d){const [k,v]=b.dataset.d.split(':');U.draft[k]=+v;render();return}
+  if(a==='add'){addEntry();return}
+  if(b.dataset.del!==undefined){act(()=>API.del(token(),+b.dataset.del));return}
+  if(b.dataset.pick){const mc=myChoice();if(mc&&mc.key===b.dataset.pick&&mc.by_me)act(()=>API.unpick(token()));else act(()=>API.pick(token(),b.dataset.pick,b.dataset.text));return}
+  if(OPS[a]){act(()=>API.op(token(),OPS[a]));return}
+  if(a==='groups'){const n=+$('ng').value||2;U.ng=n;act(()=>API.op(token(),'groups',{n}));return}
+  if(a==='timer'){const m=+$('dur').value||20;U.dur=m;act(()=>API.op(token(),'timer',{min:m}));return}
+  if(a==='back'){confirmDlg('Einen Schritt zurück?',`Zurück zu „${PLBL[PHASES[pi(G.phase)-1]]}“. Was in diesem Schritt passiert ist (z. B. Gruppen oder Auswahl), wird zurückgesetzt.`,()=>act(()=>API.op(token(),'back')));return}
+  if(a==='reset'){confirmDlg('Alles löschen und neu beginnen?','Alle Teilnehmenden, Einträge, Gruppen und Auswahlen werden gelöscht. Speichert die Matrix vorher, wenn ihr sie behalten wollt.',()=>act(()=>API.op(token(),'reset')));return}
+  if(a==='save'){saveMatrix();return}
+  if(a==='csv'){saveCsv();return}
+  if(a==='qr'){$('qrbig').hidden=false;$('qrurl').textContent=joinUrl();qr($('qrbox'),10);return}
+});
+document.body.addEventListener('change',e=>{const t=e.target;
+  if(t.dataset.q){const q=[1,2,3,4].filter(x=>document.querySelector(`[data-q="${x}"]`).checked);act(()=>API.op(token(),'allowed',{q}))}
+  if(t.id==='cap')act(()=>API.op(token(),'cap',{n:+t.value||1}));});
+document.body.addEventListener('input',e=>{const t=e.target;if(t.id==='nt'){U.draft.t=t.value;const b=$('add');if(b)b.disabled=!(U.draft.t.trim()&&U.draft.w!==null&&U.draft.d!==null&&U.draft.e!==null)}else if(t.id==='ng')U.ng=+t.value||null;else if(t.id==='dur')U.dur=+t.value||null});
+document.body.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.target.id;if(id==='nt'){e.preventDefault();addEntry()}if(id==='nm'){e.preventDefault();document.querySelector('[data-act=join]').click()}if(id==='pin'){e.preventDefault();document.querySelector('[data-act=login]').click()}});
+window.addEventListener('hashchange',()=>{lastRev=-1;poll()});
+window.addEventListener('resize',fit);
+const typing=()=>document.activeElement&&document.activeElement.matches('input');
+// Abfrage alle 1,5 s; neu gezeichnet wird nur bei Änderungen und nicht mitten im Tippen
+const loop=setInterval(async()=>{const before=lastRev;if(typing()&&G){const r=await API.state(token(),lastRev).catch(()=>null);if(r&&!r.same){G=r;lastRev=r.rev;offset=r.now-Date.now();const c=document.querySelectorAll('.stats b');if(c[0])c[0].textContent=G.n_players;if(c[1])c[1].textContent=G.n_entries}return}poll()},1500);
+const clock=setInterval(()=>{const tm=$('tm');if(tm&&G&&G.timer_end){const l=(G.timer_end-now())/1000;tm.textContent=l>0?fmt(l):'Zeit um';tm.classList.toggle('low',l<60)}},500);
+poll();
+}
+</script>
+</body>
+</html>
